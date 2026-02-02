@@ -41,6 +41,15 @@ public:
 	FGameplayAttributeData MaxStamina;
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxStamina);
 
+	// Break Bar Attribute
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Break)
+	FGameplayAttributeData Break;
+	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, Break);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxBreak)
+	FGameplayAttributeData MaxBreak;
+	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxBreak);
+
 
 public:
 	UFUNCTION()
@@ -62,6 +71,18 @@ public:
 	void OnRep_MaxStamina(const FGameplayAttributeData& OldValue) const
 	{
 		GAMEPLAYATTRIBUTE_REPNOTIFY(UBasicAttributeSet, MaxStamina, OldValue);
+	}
+
+	UFUNCTION()
+	void OnRep_Break(const FGameplayAttributeData& OldValue) const
+	{
+		GAMEPLAYATTRIBUTE_REPNOTIFY(UBasicAttributeSet, Break, OldValue);
+	}
+
+	UFUNCTION()
+	void OnRep_MaxBreak(const FGameplayAttributeData& OldValue) const
+	{
+		GAMEPLAYATTRIBUTE_REPNOTIFY(UBasicAttributeSet, MaxBreak, OldValue);
 	}
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
