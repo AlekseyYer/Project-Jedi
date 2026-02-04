@@ -65,25 +65,15 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectM
 	}
 	else if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
-		//Clamp Stamina
-		SetStamina(GetStamina());
+		SetStamina(FMath::Clamp(GetStamina(), 0.f, GetMaxStamina()));
 	}
 
 	else if (Data.EvaluatedData.Attribute == GetBreakAttribute())
 	{
-		float OverflowDamage = 0.f;
-    
-		// If break goes below 0, store the overflow
+		
 		if (GetBreak() < 0.f)
 		{
-			OverflowDamage = FMath::Abs(GetBreak());
-			SetBreak(0.f); // Clamp to 0
-		}
-    
-		// Apply overflow damage to health
-		if (OverflowDamage > 0.f)
-		{
-			SetHealth(GetHealth() - OverflowDamage);
+			SetBreak(0.f);
 		}
 	}
 }
@@ -105,10 +95,7 @@ void UBasicAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute
 		FGameplayTagContainer BreakAbilityTagContainer;
 		BreakAbilityTagContainer.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.Broken"));
 		GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(BreakAbilityTagContainer);
-    
-		// Grant broken state tag
-		FGameplayTag BrokenTag = FGameplayTag::RequestGameplayTag("State.Broken");
-		GetOwningAbilitySystemComponent()->AddLooseGameplayTag(BrokenTag);
+		
 	}
 }
 
