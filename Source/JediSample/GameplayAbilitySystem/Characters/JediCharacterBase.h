@@ -32,10 +32,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment")
 	TSubclassOf<AActor> WeaponClass;
-    
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
-	AActor* EquippedWeapon;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant;
 	
