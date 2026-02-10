@@ -75,6 +75,16 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectM
 		{
 			SetBreak(0.f);
 		}
+		else
+		{
+			if (Data.EffectSpec.Def->GetAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Effects.HitReaction")))
+			{
+				FGameplayTagContainer HitReactionTagContainer;
+				HitReactionTagContainer.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.HitReaction"));
+				GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(HitReactionTagContainer);
+			}
+		}
+		
 	}
 }
 
