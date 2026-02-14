@@ -3,6 +3,7 @@
 
 #include "JediCharacterBase.h"
 
+#include "JediSample/GameplayAbilitySystem/SliceHelper.h"
 #include "JediSample/GameplayAbilitySystem/AttributeSets/BasicAttributeSet.h"
 
 
@@ -38,7 +39,10 @@ AJediCharacterBase::AJediCharacterBase()
 
 	// Add the attribute set
 	BasicAttributeSet = CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"));
-	
+
+	ProceduralMeshCopy = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralMeshCopy"));
+	ProceduralMeshCopy->SetupAttachment(GetMesh());
+	ProceduralMeshCopy->SetVisibility(false);
 }
 
 // Called when the game starts or when spawned
@@ -48,7 +52,20 @@ void AJediCharacterBase::BeginPlay()
 
 	AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag("State.Dead"))
 	.AddUObject(this, &AJediCharacterBase::OnDeadTagChanged);
-	
+
+	if (GetMesh() && ProceduralMeshCopy)
+	{
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			if (GetMesh() && ProceduralMeshCopy)
+			{
+				USliceHelper::CopySkeletalMeshToProceduralMesh(GetMesh(), ProceduralMeshCopy);
+				ProceduralMeshCopy->SetVisibility(false);
+				UE_LOG(LogTemp, Warning, TEXT("Pre-copy complete. Sections: %d"), ProceduralMeshCopy->GetNumSections());
+			}
+		}, 0.5f, false);
+	}
 }
 
 // Called every frame
@@ -70,6 +87,92 @@ UAbilitySystemComponent* AJediCharacterBase::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
+void AJediCharacterBase::SliceAtPoint_Implementation(FVector HitLocation, FVector SliceNormal)
+{
+    if (!GetMesh() || !ProceduralMeshCopy) return;
+
+	// If pre-copy hasn't happened, do full copy (fallback)
+	if (ProceduralMeshCopy->GetNumSections() == 0)
+	{
+		USliceHelper::CopySkeletalMeshToProceduralMesh(GetMesh(), ProceduralMeshCopy);
+	}
+	// Otherwise just use the pre-copied mesh as-is
+
+	ProceduralMeshCopy->SetWorldTransform(GetMesh()->GetComponentTransform());
+	GetMesh()->SetVisibility(false);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    ProceduralMeshCopy->SetVisibility(true);
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetCharacterMovement()->DisableMovement();
+
+    // SliceNormal is now the actual swing direction from the Blueprint
+    UProceduralMeshComponent* OtherHalf = nullptr;
+
+    UKismetProceduralMeshLibrary::SliceProceduralMesh(
+        ProceduralMeshCopy,
+        HitLocation,
+        SliceNormal,
+        true,
+        OtherHalf,
+        EProcMeshSliceCapOption::CreateNewSectionForCap,
+        SliceCapMaterial
+    );
+
+    if (OtherHalf)
+    {
+        ProceduralMeshCopy->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+        OtherHalf->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+
+    	auto SetupHalf = [](UProceduralMeshComponent* Half)
+    	{
+    		Half->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    		Half->SetCollisionResponseToAllChannels(ECR_Block);
+    		Half->SetCollisionObjectType(ECC_PhysicsBody);
+    		Half->bUseComplexAsSimpleCollision = false;
+
+    		FBox Bounds(ForceInit);
+    		for (int32 i = 0; i < Half->GetNumSections(); i++)
+    		{
+    			FProcMeshSection* Section = Half->GetProcMeshSection(i);
+    			if (Section)
+    			{
+    				for (const FProcMeshVertex& Vert : Section->ProcVertexBuffer)
+    				{
+    					Bounds += Vert.Position;
+    				}
+    			}
+    		}
+
+    		if (Bounds.IsValid)
+    		{
+    			TArray<FVector> BoxVerts;
+    			BoxVerts.Add(Bounds.Min);
+    			BoxVerts.Add(Bounds.Max);
+    			BoxVerts.Add(FVector(Bounds.Min.X, Bounds.Min.Y, Bounds.Max.Z));
+    			BoxVerts.Add(FVector(Bounds.Min.X, Bounds.Max.Y, Bounds.Min.Z));
+    			BoxVerts.Add(FVector(Bounds.Max.X, Bounds.Min.Y, Bounds.Min.Z));
+    			BoxVerts.Add(FVector(Bounds.Max.X, Bounds.Max.Y, Bounds.Min.Z));
+    			BoxVerts.Add(FVector(Bounds.Max.X, Bounds.Min.Y, Bounds.Max.Z));
+    			BoxVerts.Add(FVector(Bounds.Min.X, Bounds.Max.Y, Bounds.Max.Z));
+
+    			Half->ClearCollisionConvexMeshes();
+    			Half->AddCollisionConvexMesh(BoxVerts);
+    		}
+
+    		Half->SetSimulatePhysics(true);
+    	};
+
+        SetupHalf(ProceduralMeshCopy);
+        SetupHalf(OtherHalf);
+
+    	float TumbleStrength = 150.f;
+    	FVector RandomTumble = FMath::VRand() * TumbleStrength;
+
+    	ProceduralMeshCopy->AddAngularImpulseInDegrees(RandomTumble, NAME_None, true);
+    	OtherHalf->AddAngularImpulseInDegrees(-RandomTumble, NAME_None, true);
+    }
+}
 void AJediCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

@@ -8,6 +8,8 @@
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "ProceduralMeshComponent.h"
+#include "KismetProceduralMeshLibrary.h"
 #include "JediCharacterBase.generated.h"
 
 UCLASS()
@@ -35,7 +37,13 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slice")
+	UProceduralMeshComponent* ProceduralMeshCopy;
+
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Slice")
+	UMaterialInterface* SliceCapMaterial;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -59,4 +67,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Combat")
+	void SliceAtPoint(FVector HitLocation, FVector SliceNormal);
 };
