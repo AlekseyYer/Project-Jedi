@@ -11,7 +11,7 @@
 #include "ProceduralMeshComponent.h"
 #include "KismetProceduralMeshLibrary.h"
 #include "JediCharacterBase.generated.h"
-
+class ACombatManager;
 UCLASS()
 class JEDISAMPLE_API AJediCharacterBase : public ACharacter, public IAbilitySystemInterface
 {
