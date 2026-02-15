@@ -168,33 +168,13 @@ void AJediCharacterBase::SliceAtPoint_Implementation(FVector HitLocation, FVecto
         SetupHalf(OtherHalf);
 
     	float PushForce = 300.f;
-    	float TumbleStrength = 150.f;
-    	FVector RandomTumble = FMath::VRand() * TumbleStrength;
 
-    	// Push direction: from hit location through the enemy center
     	FVector PushDir = GetActorLocation() - HitLocation;
     	PushDir.Z = 0.f;
     	PushDir.Normalize();
 
     	ProceduralMeshCopy->AddImpulse(PushDir * PushForce, NAME_None, true);
-    	ProceduralMeshCopy->AddAngularImpulseInDegrees(RandomTumble, NAME_None, true);
-
     	OtherHalf->AddImpulse(PushDir * PushForce, NAME_None, true);
-    	OtherHalf->AddAngularImpulseInDegrees(-RandomTumble, NAME_None, true);
-
-    	// After the push impulses
-    	// Tip over the piece that's closer to the ground
-    	FVector ProceduralCenter = ProceduralMeshCopy->Bounds.Origin;
-    	FVector OtherCenter = OtherHalf->Bounds.Origin;
-
-    	if (ProceduralCenter.Z < OtherCenter.Z)
-    	{
-    		ProceduralMeshCopy->AddImpulse(FVector(0, 0, -200.f), NAME_None, true);
-    	}
-    	else
-    	{
-    		OtherHalf->AddImpulse(FVector(0, 0, -200.f), NAME_None, true);
-    	}
     }
 }
 void AJediCharacterBase::PossessedBy(AController* NewController)
