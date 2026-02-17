@@ -57,6 +57,7 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damage")
 	void HandleDeath();
 
+	
 	// Replication for PlayerState (ex. player joins a server or spawns)
 	virtual void OnRep_PlayerState() override;
 public:	
@@ -70,4 +71,10 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Combat")
 	void SliceAtPoint(FVector HitLocation, FVector SliceNormal);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Widget")
+	void FadeInVitals();
+    
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Widget")
+	void FadeOutVitals();
 };

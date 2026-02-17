@@ -187,6 +187,8 @@ void AJediCharacterBase::PossessedBy(AController* NewController)
 	}
 }
 
+
+
 void AJediCharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
@@ -206,6 +208,14 @@ void AJediCharacterBase::OnDeadTagChanged(const FGameplayTag CallbackTag, int32 
 		HandleDeath();
 	}
 }
+// Default empty implementations for Blueprint events
+void AJediCharacterBase::FadeInVitals_Implementation()
+{
+}
+void AJediCharacterBase::FadeOutVitals_Implementation()
+{
+}
+
 
 void AJediCharacterBase::HandleDeath_Implementation()
 {

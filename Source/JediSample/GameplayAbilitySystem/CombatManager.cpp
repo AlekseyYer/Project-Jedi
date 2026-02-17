@@ -158,6 +158,8 @@ void ACombatManager::AssignAttacker(AJediCharacterBase* NewAttacker)
             NewAI->GetBlackboardComponent()->SetValueAsBool(FName("IsActiveAttacker"), true);
             NewAI->GetBlackboardComponent()->SetValueAsObject(FName("TargetPlayer"), PlayerCharacter);
             UE_LOG(LogTemp, Warning, TEXT("New active attacker: %s"), *ActiveAttacker->GetName());
+
+            ActiveAttacker->FadeInVitals();
         }
     }
     else
