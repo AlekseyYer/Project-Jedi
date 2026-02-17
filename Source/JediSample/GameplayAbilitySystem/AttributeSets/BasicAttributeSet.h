@@ -24,11 +24,11 @@ public:
 
 	UBasicAttributeSet();
 	// Health Attribute
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Health )
+	UPROPERTY(BlueprintReadWrite, Category = "Attributes", ReplicatedUsing = OnRep_Health )
 	FGameplayAttributeData Health;
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, Health);
 
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxHealth )
+	UPROPERTY(BlueprintReadWrite, Category = "Attributes", ReplicatedUsing = OnRep_MaxHealth )
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxHealth);
 	
@@ -42,13 +42,20 @@ public:
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxStamina);
 
 	// Break Bar Attribute
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Break)
+	UPROPERTY(BlueprintReadWrite, Category = "Attributes", ReplicatedUsing = OnRep_Break)
 	FGameplayAttributeData Break;
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, Break);
 
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxBreak)
+	UPROPERTY(BlueprintReadWrite, Category = "Attributes", ReplicatedUsing = OnRep_MaxBreak)
 	FGameplayAttributeData MaxBreak;
 	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxBreak);
+	
+	// Store the last actor who damaged the break bar, so we can send a "Can Execute" tag
+	UPROPERTY()
+	TWeakObjectPtr<AActor> LastBreakAttacker;
+
+	UFUNCTION(BlueprintCallable, Category = "Execution")
+	AActor* GetLastBreakAttacker() const { return LastBreakAttacker.Get(); }
 
 
 public:
