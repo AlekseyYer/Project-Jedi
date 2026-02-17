@@ -84,13 +84,6 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectM
 				GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(HitReactionTagContainer);
 			}
 		}
-		// Store whoever just damaged our break bar
-		const FGameplayEffectContextHandle& CtxHandle = Data.EffectSpec.GetEffectContext();
-		if (CtxHandle.IsValid())
-		{
-			LastBreakAttacker = CtxHandle.GetInstigator();
-		}
-		
 	}
 }
 

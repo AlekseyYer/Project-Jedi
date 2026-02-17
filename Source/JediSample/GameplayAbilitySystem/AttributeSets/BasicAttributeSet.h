@@ -48,14 +48,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Attributes", ReplicatedUsing = OnRep_MaxBreak)
 	FGameplayAttributeData MaxBreak;
-	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxBreak);
-	
-	// Store the last actor who damaged the break bar, so we can send a "Can Execute" tag
-	UPROPERTY()
-	TWeakObjectPtr<AActor> LastBreakAttacker;
-
-	UFUNCTION(BlueprintCallable, Category = "Execution")
-	AActor* GetLastBreakAttacker() const { return LastBreakAttacker.Get(); }
+	ATTRIBUTE_ACCESSORS(UBasicAttributeSet, MaxBreak)
 
 
 public:
