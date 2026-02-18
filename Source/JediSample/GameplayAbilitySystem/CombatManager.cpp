@@ -22,8 +22,6 @@ void ACombatManager::Tick(float DeltaTime)
 
     if (!PlayerCharacter) return;
 
-    OrbitAngleOffset += OrbitSpeed * DeltaTime;
-
     int32 WaitingIndex = 0;
     for (AJediCharacterBase* Enemy : Enemies)
     {
@@ -37,48 +35,9 @@ void ACombatManager::Tick(float DeltaTime)
             FRotator LookRot = DirToPlayer.Rotation();
             Enemy->SetActorRotation(FMath::RInterpTo(Enemy->GetActorRotation(), LookRot, DeltaTime, 5.f));
         }
-
-        // Only move non-active enemies to ring positions
-        if (Enemy == ActiveAttacker) continue;
-
-        AAIController* AI = Cast<AAIController>(Enemy->GetController());
-        if (!AI) continue;
-
-        FVector TargetPos = GetRingPosition(WaitingIndex);
-        WaitingIndex++;
-
-        AI->MoveToLocation(TargetPos, 50.f);
     }
 }
 
-
-FVector ACombatManager::GetRingPosition(int32 EnemyIndex) const
-{
-    if (!PlayerCharacter) return FVector::ZeroVector;
-
-    // Count how many enemies are in the ring
-    int32 WaitingCount = 0;
-    for (AJediCharacterBase* E : Enemies)
-    {
-        if (E && E != ActiveAttacker && !DisabledEnemies.Contains(E))
-        {
-            WaitingCount++;
-        }
-    }
-
-    if (WaitingCount == 0) return PlayerCharacter->GetActorLocation();
-
-    // Evenly space enemies around the ring
-    float AngleStep = 360.f / WaitingCount;
-    float Angle = FMath::DegreesToRadians(OrbitAngleOffset + AngleStep * EnemyIndex);
-
-    FVector PlayerLoc = PlayerCharacter->GetActorLocation();
-    return FVector(
-        PlayerLoc.X + RingRadius * FMath::Cos(Angle),
-        PlayerLoc.Y + RingRadius * FMath::Sin(Angle),
-        PlayerLoc.Z
-    );
-}
 
 void ACombatManager::RegisterEnemy(AJediCharacterBase* Enemy)
 {
