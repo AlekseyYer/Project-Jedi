@@ -116,7 +116,8 @@ void USliceHelper::UpdateProceduralMeshPositions(
     FSkeletalMeshRenderData* RenderData = SkeletalMesh->GetSkeletalMeshRenderData();
     if (!RenderData || RenderData->LODRenderData.Num() == 0) return;
 
-    FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+    int32 LODIndex = RenderData->LODRenderData.Num() - 1;
+    FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[LODIndex];
     int32 NumSections = LODData.RenderSections.Num();
 
     for (int32 SectionIdx = 0; SectionIdx < NumSections; SectionIdx++)
