@@ -3,6 +3,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 
 ACombatManager::ACombatManager()
 {
@@ -14,6 +15,9 @@ void ACombatManager::BeginPlay()
     Super::BeginPlay();
 
     PlayerCharacter = UGameplayStatics::GetPlayerPawn(this, 0);
+
+    // Kick off the first spawn
+    SpawnNextEnemy();
 }
 
 void ACombatManager::Tick(float DeltaTime)
@@ -22,12 +26,11 @@ void ACombatManager::Tick(float DeltaTime)
 
     if (!PlayerCharacter) return;
 
-    int32 WaitingIndex = 0;
     for (AJediCharacterBase* Enemy : Enemies)
     {
         if (!Enemy || DisabledEnemies.Contains(Enemy)) continue;
 
-        // Rotate ALL enemies toward the player
+        // Rotate all enemies toward the player
         FVector DirToPlayer = PlayerCharacter->GetActorLocation() - Enemy->GetActorLocation();
         DirToPlayer.Z = 0.f;
         if (!DirToPlayer.IsNearlyZero())
@@ -38,13 +41,64 @@ void ACombatManager::Tick(float DeltaTime)
     }
 }
 
+void ACombatManager::SpawnNextEnemy()
+{
+    if (!EnemyClass || !PlayerCharacter) return;
+
+    FVector SpawnLoc = FindSpawnLocation();
+    FRotator SpawnRot = (PlayerCharacter->GetActorLocation() - SpawnLoc).Rotation();
+    SpawnRot.Pitch = 0.f;
+    SpawnRot.Roll = 0.f;
+
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+    AJediCharacterBase* NewEnemy = GetWorld()->SpawnActor<AJediCharacterBase>(EnemyClass, SpawnLoc, SpawnRot, Params);
+    if (NewEnemy)
+    {
+        RegisterEnemy(NewEnemy);
+        UE_LOG(LogTemp, Warning, TEXT("CombatManager: Spawned %s at %s"), *NewEnemy->GetName(), *SpawnLoc.ToString());
+    }
+}
+
+FVector ACombatManager::FindSpawnLocation() const
+{
+    // Try to find a point on the navmesh within the spawn radius
+    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+    if (NavSys && PlayerCharacter)
+    {
+        for (int32 Attempt = 0; Attempt < 10; ++Attempt)
+        {
+            // Pick a random direction and distance
+            float Angle = FMath::RandRange(0.f, 360.f);
+            float Dist = FMath::RandRange(SpawnRadiusMin, SpawnRadiusMax);
+            FVector Candidate = PlayerCharacter->GetActorLocation()
+                + FVector(FMath::Cos(FMath::DegreesToRadians(Angle)) * Dist,
+                          FMath::Sin(FMath::DegreesToRadians(Angle)) * Dist,
+                          0.f);
+
+            FNavLocation NavLoc;
+            if (NavSys->ProjectPointToNavigation(Candidate, NavLoc, FVector(100.f, 100.f, 200.f)))
+            {
+                return NavLoc.Location;
+            }
+        }
+    }
+
+    // Fallback: just pick a raw random point around the player
+    float Angle = FMath::RandRange(0.f, 360.f);
+    float Dist = FMath::RandRange(SpawnRadiusMin, SpawnRadiusMax);
+    return PlayerCharacter->GetActorLocation()
+        + FVector(FMath::Cos(FMath::DegreesToRadians(Angle)) * Dist,
+                  FMath::Sin(FMath::DegreesToRadians(Angle)) * Dist,
+                  0.f);
+}
 
 void ACombatManager::RegisterEnemy(AJediCharacterBase* Enemy)
 {
     if (!Enemy || Enemies.Contains(Enemy)) return;
     Enemies.Add(Enemy);
 
-    // If no active attacker, assign this one
     if (!ActiveAttacker)
     {
         ActivateNextAttacker();
@@ -66,6 +120,9 @@ void ACombatManager::UnregisterEnemy(AJediCharacterBase* Enemy)
 void ACombatManager::OnEnemyDied(AJediCharacterBase* Enemy)
 {
     UnregisterEnemy(Enemy);
+
+    // Spawn the next one immediately
+    SpawnNextEnemy();
 }
 
 void ACombatManager::ActivateNextAttacker()
@@ -76,7 +133,6 @@ void ACombatManager::ActivateNextAttacker()
 
 AJediCharacterBase* ACombatManager::PickNextAttacker() const
 {
-    // Pick the closest non-disabled enemy
     float BestDist = TNumericLimits<float>::Max();
     AJediCharacterBase* Best = nullptr;
 
@@ -116,14 +172,14 @@ void ACombatManager::AssignAttacker(AJediCharacterBase* NewAttacker)
         {
             NewAI->GetBlackboardComponent()->SetValueAsBool(FName("IsActiveAttacker"), true);
             NewAI->GetBlackboardComponent()->SetValueAsObject(FName("TargetPlayer"), PlayerCharacter);
-            UE_LOG(LogTemp, Warning, TEXT("New active attacker: %s"), *ActiveAttacker->GetName());
+            UE_LOG(LogTemp, Warning, TEXT("CombatManager: New active attacker: %s"), *ActiveAttacker->GetName());
 
             ActiveAttacker->FadeInVitals();
         }
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("No valid attacker found"));
+        UE_LOG(LogTemp, Warning, TEXT("CombatManager: No valid attacker found"));
     }
 }
 
@@ -135,7 +191,6 @@ void ACombatManager::SetEnemyDisabled(AJediCharacterBase* Enemy, bool bDisabled)
     {
         DisabledEnemies.Add(Enemy);
 
-        // If this was the active attacker, pick a new one
         if (ActiveAttacker == Enemy)
         {
             ActiveAttacker = nullptr;
@@ -146,7 +201,6 @@ void ACombatManager::SetEnemyDisabled(AJediCharacterBase* Enemy, bool bDisabled)
     {
         DisabledEnemies.Remove(Enemy);
 
-        // If no active attacker, this enemy can take over
         if (!ActiveAttacker)
         {
             ActivateNextAttacker();

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,7 +16,6 @@ public:
 
 	virtual void BeginPlay() override;
 
-
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	AActor* PlayerCharacter;
 
@@ -26,6 +24,17 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	AJediCharacterBase* ActiveAttacker;
+
+	// Enemy class to spawn
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
+	TSubclassOf<AJediCharacterBase> EnemyClass;
+
+	// Min/max distance from player to pick a spawn point
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
+	float SpawnRadiusMin = 400.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
+	float SpawnRadiusMax = 700.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void RegisterEnemy(AJediCharacterBase* Enemy);
@@ -39,7 +48,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ActivateNextAttacker();
 
-
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void SetEnemyDisabled(AJediCharacterBase* Enemy, bool bDisabled);
 
@@ -47,10 +55,10 @@ private:
 	UPROPERTY()
 	TSet<AJediCharacterBase*> DisabledEnemies;
 
-
-
 	virtual void Tick(float DeltaTime) override;
 
 	void AssignAttacker(AJediCharacterBase* NewAttacker);
 	AJediCharacterBase* PickNextAttacker() const;
+	void SpawnNextEnemy();
+	FVector FindSpawnLocation() const;
 };
