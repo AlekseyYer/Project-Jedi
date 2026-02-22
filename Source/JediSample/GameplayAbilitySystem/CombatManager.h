@@ -25,16 +25,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	AJediCharacterBase* ActiveAttacker;
 
-	// Enemy class to spawn
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
 	TSubclassOf<AJediCharacterBase> EnemyClass;
 
-	// Min/max distance from player to pick a spawn point
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
 	float SpawnRadiusMin = 400.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Spawning")
 	float SpawnRadiusMax = 700.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float VitalsShowRange = 600.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void RegisterEnemy(AJediCharacterBase* Enemy);
@@ -54,6 +55,8 @@ public:
 private:
 	UPROPERTY()
 	TSet<AJediCharacterBase*> DisabledEnemies;
+
+	TSet<AJediCharacterBase*> EnemiesWithVitalsVisible;
 
 	virtual void Tick(float DeltaTime) override;
 

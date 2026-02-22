@@ -13,17 +13,13 @@ ACombatManager::ACombatManager()
 void ACombatManager::BeginPlay()
 {
     Super::BeginPlay();
-
     PlayerCharacter = UGameplayStatics::GetPlayerPawn(this, 0);
-
-    // Kick off the first spawn
     SpawnNextEnemy();
 }
 
 void ACombatManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
     if (!PlayerCharacter) return;
 
     for (AJediCharacterBase* Enemy : Enemies)
@@ -37,6 +33,31 @@ void ACombatManager::Tick(float DeltaTime)
         {
             FRotator LookRot = DirToPlayer.Rotation();
             Enemy->SetActorRotation(FMath::RInterpTo(Enemy->GetActorRotation(), LookRot, DeltaTime, 5.f));
+        }
+
+        // Vitals: only active attacker in range shows vitals
+        if (Enemy == ActiveAttacker)
+        {
+            float Dist = FVector::Dist(Enemy->GetActorLocation(), PlayerCharacter->GetActorLocation());
+            bool bInRange = Dist <= VitalsShowRange;
+            bool bCurrentlyVisible = EnemiesWithVitalsVisible.Contains(Enemy);
+
+            if (bInRange && !bCurrentlyVisible)
+            {
+                Enemy->FadeInVitals();
+                EnemiesWithVitalsVisible.Add(Enemy);
+            }
+            else if (!bInRange && bCurrentlyVisible)
+            {
+                Enemy->FadeOutVitals();
+                EnemiesWithVitalsVisible.Remove(Enemy);
+            }
+        }
+        else if (EnemiesWithVitalsVisible.Contains(Enemy))
+        {
+            // Not the active attacker but vitals still showing — fade out
+            Enemy->FadeOutVitals();
+            EnemiesWithVitalsVisible.Remove(Enemy);
         }
     }
 }
@@ -63,13 +84,11 @@ void ACombatManager::SpawnNextEnemy()
 
 FVector ACombatManager::FindSpawnLocation() const
 {
-    // Try to find a point on the navmesh within the spawn radius
     UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
     if (NavSys && PlayerCharacter)
     {
         for (int32 Attempt = 0; Attempt < 10; ++Attempt)
         {
-            // Pick a random direction and distance
             float Angle = FMath::RandRange(0.f, 360.f);
             float Dist = FMath::RandRange(SpawnRadiusMin, SpawnRadiusMax);
             FVector Candidate = PlayerCharacter->GetActorLocation()
@@ -79,13 +98,10 @@ FVector ACombatManager::FindSpawnLocation() const
 
             FNavLocation NavLoc;
             if (NavSys->ProjectPointToNavigation(Candidate, NavLoc, FVector(100.f, 100.f, 200.f)))
-            {
                 return NavLoc.Location;
-            }
         }
     }
 
-    // Fallback: just pick a raw random point around the player
     float Angle = FMath::RandRange(0.f, 360.f);
     float Dist = FMath::RandRange(SpawnRadiusMin, SpawnRadiusMax);
     return PlayerCharacter->GetActorLocation()
@@ -100,15 +116,14 @@ void ACombatManager::RegisterEnemy(AJediCharacterBase* Enemy)
     Enemies.Add(Enemy);
 
     if (!ActiveAttacker)
-    {
         ActivateNextAttacker();
-    }
 }
 
 void ACombatManager::UnregisterEnemy(AJediCharacterBase* Enemy)
 {
     Enemies.Remove(Enemy);
     DisabledEnemies.Remove(Enemy);
+    EnemiesWithVitalsVisible.Remove(Enemy);
 
     if (ActiveAttacker == Enemy)
     {
@@ -120,15 +135,12 @@ void ACombatManager::UnregisterEnemy(AJediCharacterBase* Enemy)
 void ACombatManager::OnEnemyDied(AJediCharacterBase* Enemy)
 {
     UnregisterEnemy(Enemy);
-
-    // Spawn the next one immediately
     SpawnNextEnemy();
 }
 
 void ACombatManager::ActivateNextAttacker()
 {
-    AJediCharacterBase* Next = PickNextAttacker();
-    AssignAttacker(Next);
+    AssignAttacker(PickNextAttacker());
 }
 
 AJediCharacterBase* ACombatManager::PickNextAttacker() const
@@ -155,6 +167,12 @@ void ACombatManager::AssignAttacker(AJediCharacterBase* NewAttacker)
 {
     if (ActiveAttacker)
     {
+        if (EnemiesWithVitalsVisible.Contains(ActiveAttacker))
+        {
+            ActiveAttacker->FadeOutVitals();
+            EnemiesWithVitalsVisible.Remove(ActiveAttacker);
+        }
+
         AAIController* OldAI = Cast<AAIController>(ActiveAttacker->GetController());
         if (OldAI && OldAI->GetBlackboardComponent())
         {
@@ -173,8 +191,6 @@ void ACombatManager::AssignAttacker(AJediCharacterBase* NewAttacker)
             NewAI->GetBlackboardComponent()->SetValueAsBool(FName("IsActiveAttacker"), true);
             NewAI->GetBlackboardComponent()->SetValueAsObject(FName("TargetPlayer"), PlayerCharacter);
             UE_LOG(LogTemp, Warning, TEXT("CombatManager: New active attacker: %s"), *ActiveAttacker->GetName());
-
-            ActiveAttacker->FadeInVitals();
         }
     }
     else
@@ -190,7 +206,6 @@ void ACombatManager::SetEnemyDisabled(AJediCharacterBase* Enemy, bool bDisabled)
     if (bDisabled)
     {
         DisabledEnemies.Add(Enemy);
-
         if (ActiveAttacker == Enemy)
         {
             ActiveAttacker = nullptr;
@@ -200,10 +215,7 @@ void ACombatManager::SetEnemyDisabled(AJediCharacterBase* Enemy, bool bDisabled)
     else
     {
         DisabledEnemies.Remove(Enemy);
-
         if (!ActiveAttacker)
-        {
             ActivateNextAttacker();
-        }
     }
 }
