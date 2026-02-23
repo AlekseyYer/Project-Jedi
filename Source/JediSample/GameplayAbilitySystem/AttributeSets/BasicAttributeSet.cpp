@@ -59,6 +59,8 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectM
 			FGameplayTagContainer HitReactionTagContainer;
 			HitReactionTagContainer.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.HitReaction"));
 			GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(HitReactionTagContainer);
+
+			
 		}
 		
 		
@@ -107,4 +109,6 @@ void UBasicAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute
 		
 	}
 }
+
+
 

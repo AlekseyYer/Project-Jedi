@@ -188,7 +188,6 @@ void AJediCharacterBase::PossessedBy(AController* NewController)
 }
 
 
-
 void AJediCharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();

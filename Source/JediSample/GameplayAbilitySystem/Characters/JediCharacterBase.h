@@ -58,6 +58,8 @@ protected:
 	void HandleDeath();
 
 	
+
+	
 	// Replication for PlayerState (ex. player joins a server or spawns)
 	virtual void OnRep_PlayerState() override;
 public:	
